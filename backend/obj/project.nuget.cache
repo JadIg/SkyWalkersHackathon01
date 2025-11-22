@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "pB91pKRg4oY=",
+  "dgSpecHash": "e08VfK99luw=",
   "success": true,
-  "projectFilePath": "/Users/sajjad/ITS_HACKATHON/FirstTry/MyHackathonAPI/MyHackathonAPI.csproj",
+  "projectFilePath": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj",
   "expectedPackageFiles": [
     "/Users/sajjad/.nuget/packages/microsoft.aspnetcore.openapi/9.0.10/microsoft.aspnetcore.openapi.9.0.10.nupkg.sha512",
     "/Users/sajjad/.nuget/packages/microsoft.data.sqlite.core/9.0.0/microsoft.data.sqlite.core.9.0.0.nupkg.sha512",

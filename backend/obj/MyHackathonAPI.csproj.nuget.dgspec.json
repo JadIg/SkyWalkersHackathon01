@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/sajjad/ITS_HACKATHON/FirstTry/MyHackathonAPI/MyHackathonAPI.csproj": {}
+    "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj": {}
   },
   "projects": {
-    "/Users/sajjad/ITS_HACKATHON/FirstTry/MyHackathonAPI/MyHackathonAPI.csproj": {
+    "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/sajjad/ITS_HACKATHON/FirstTry/MyHackathonAPI/MyHackathonAPI.csproj",
+        "projectUniqueName": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj",
         "projectName": "MyHackathonAPI",
-        "projectPath": "/Users/sajjad/ITS_HACKATHON/FirstTry/MyHackathonAPI/MyHackathonAPI.csproj",
+        "projectPath": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj",
         "packagesPath": "/Users/sajjad/.nuget/packages/",
-        "outputPath": "/Users/sajjad/ITS_HACKATHON/FirstTry/MyHackathonAPI/obj/",
+        "outputPath": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/sajjad/.nuget/NuGet/NuGet.Config"

@@ -130,3 +130,4 @@
 /Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/obj/Debug/net9.0/MyHackathonAPI.pdb
 /Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/obj/Debug/net9.0/MyHackathonAPI.genruntimeconfig.cache
 /Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/obj/Debug/net9.0/ref/MyHackathonAPI.dll
+/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/bin/Debug/net9.0/Microsoft.EntityFrameworkCore.InMemory.dll

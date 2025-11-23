@@ -33,19 +33,28 @@ public static class AuthEndpoints {
             if (await db.Users.AnyAsync(u => u.Email.ToLower() == req.Email.ToLower()))
                 return Results.Conflict("Email already registered.");
 
-            // 2. Create a unique tenant for the new user
-            var tenant = new Tenant { Name = $"{req.Name}'s Organization" };
-            db.Tenants.Add(tenant);
-            await db.SaveChangesAsync();
+            int tenantId;
+            Tenant tenant;
+            string role = "Editor";
+            if (req.tenantId.HasValue && req.tenantId.Value > 0) {
+                // Use existing tenant
+                tenant = await db.Tenants.FindAsync(req.tenantId.Value);
+                if (tenant == null) {
+                    return Results.BadRequest("Selected organization does not exist.");
+                }
+                tenantId = tenant.Id;
+            } else {
+                
+                // Create a unique tenant for the new user
+                tenant = new Tenant { Name = $"{req.Name}'s Organization" };
+                db.Tenants.Add(tenant);
+                await db.SaveChangesAsync();
+                tenantId = tenant.Id;
+                role = "Admin"; // Creator of the tenant gets Admin role
+            }
 
             // 3. Create User
-            var user = new User {
-                Name = req.Name,
-                Email = req.Email,
-                Password = req.Password,
-                TenantId = tenant.Id,
-                Role = "Editor" // Default
-            };
+            var user = await User.CreateAsync(db, req.Name, req.Email, req.Password, tenantId, role);
 
             db.Users.Add(user);
             await db.SaveChangesAsync();

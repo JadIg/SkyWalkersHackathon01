@@ -27,20 +27,41 @@ public static class DataSeeder {
             db.SaveChanges();
 
             // 3. Create Demo Form (For Bank)
-            var form = new Form {
-                Title = "Hackathon Feedback Survey",
-                Description = "Tell us about your experience!",
-                TenantId = 1, 
-                IsPublished = true, 
-                IsPublic = true, 
-                Version = 1,
-                Questions = new List<Question> {
-                    new Question { Label = "How was the food?", Type = "Rating", Options = "1-5" },
-                    new Question { Label = "Which track are you in?", Type = "Dropdown", Options = "Backend,Frontend,Design" }
+            var form = Form.CreateInitial(
+                "Hackathon Feedback Survey",
+                "Tell us about your experience!",
+                1,
+                true,
+                true,
+                null,
+                null,
+                false,
+                new List<Question> {
+                    new Question { 
+                        Label = "How was the food?", 
+                        Type = "Rating", 
+                        Options = "1-5",
+                        IsRequired = false,
+                        HelpText = "",
+                        Placeholder = "",
+                        DefaultValue = "",
+                        ValidationRules = ""
+                    },
+                    new Question { 
+                        Label = "Which track are you in?", 
+                        Type = "Dropdown", 
+                        Options = "Backend,Frontend,Design",
+                        IsRequired = false,
+                        HelpText = "",
+                        Placeholder = "",
+                        DefaultValue = "",
+                        ValidationRules = ""
+                    }
                 }
-            };
+            );
             db.Forms.Add(form);
             db.SaveChanges();
+            if (form.ParentGroupId is null) { form.ParentGroupId = form.Id; db.SaveChanges(); }
             
             Console.WriteLine("✅ Login Accounts Created:");
             Console.WriteLine("   - ali@nb.com  -> Tenant 1");

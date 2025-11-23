@@ -1624,11 +1624,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj",
+      "projectUniqueName": "/Users/sajjad/ITS_FRONT/proj00001/backend/MyHackathonAPI.csproj",
       "projectName": "MyHackathonAPI",
-      "projectPath": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/MyHackathonAPI.csproj",
+      "projectPath": "/Users/sajjad/ITS_FRONT/proj00001/backend/MyHackathonAPI.csproj",
       "packagesPath": "/Users/sajjad/.nuget/packages/",
-      "outputPath": "/Users/sajjad/Hacka01/SkyWalkersHackathon01/backend/obj/",
+      "outputPath": "/Users/sajjad/ITS_FRONT/proj00001/backend/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/sajjad/.nuget/NuGet/NuGet.Config"

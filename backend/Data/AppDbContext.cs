@@ -13,4 +13,9 @@ public class AppDb : DbContext {
     public DbSet<Question> Questions { get; set; } = null!;
     public DbSet<Submission> Submissions { get; set; } = null!;
     public DbSet<Answer> Answers { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) {
+        // Mark Form.Version as concurrency token (optional EF check)
+        modelBuilder.Entity<Form>().Property(f => f.Version).IsConcurrencyToken();
+    }
 }

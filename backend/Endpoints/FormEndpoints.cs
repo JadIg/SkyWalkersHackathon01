@@ -7,9 +7,23 @@ namespace MyHackathonAPI.Endpoints;
 public static class FormEndpoints {
     public static void MapFormEndpoints(this IEndpointRouteBuilder app) {
         
-        // GET /forms?tenantId=1
-        app.MapGet("/forms", async (int tenantId, AppDb db) => 
-            await db.Forms.Where(f => f.TenantId == tenantId).ToListAsync());
+        // GET /forms?tenantId=1&userId=1&role=Editor (only non-deleted)
+        app.MapGet("/forms", async (int tenantId, int? userId, string? role, AppDb db) => {
+            var query = db.Forms.Where(f => f.TenantId == tenantId && !f.IsDeleted);
+            
+            // If role is NOT Admin, filter by CreatedBy
+            if (!string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) && userId.HasValue) {
+                query = query.Where(f => f.CreatedBy == userId || f.CreatedBy == 0); // 0 for legacy forms
+            }
+            
+            return await query.ToListAsync();
+        });
+
+        // GET /forms/deleted?tenantId=1 (only deleted forms)
+        app.MapGet("/forms/deleted", async (int tenantId, AppDb db) => 
+            await db.Forms.Where(f => f.TenantId == tenantId && f.IsDeleted)
+                .OrderByDescending(f => f.DeletedAt)
+                .ToListAsync());
 
         // GET /forms/{id}
         app.MapGet("/forms/{id}", async (int id, AppDb db) => 
@@ -20,9 +34,16 @@ public static class FormEndpoints {
 
         // POST /forms
         app.MapPost("/forms", async (Form form, AppDb db) => {
-            db.Forms.Add(form);
+            var initial = Form.CreateInitial(form.Title, form.Description, form.TenantId, form.IsPublished, form.IsPublic,
+                form.StartDate, form.EndDate, form.OneSubmissionPerUser, form.Questions);
+            
+            // Set CreatedBy
+            initial.CreatedBy = form.CreatedBy;
+
+            db.Forms.Add(initial);
             await db.SaveChangesAsync();
-            return Results.Created($"/forms/{form.Id}", form);
+            if (initial.ParentGroupId is null) { initial.ParentGroupId = initial.Id; await db.SaveChangesAsync(); }
+            return Results.Created($"/forms/{initial.Id}", initial);
         });
 
         // PUT /forms/{id} - HANDLES VERSIONING
@@ -36,52 +57,50 @@ public static class FormEndpoints {
             if (hasSubmissions) {
                 // STRATEGY A: VERSION LOCKING
                 // Create a NEW form version instead of editing the old one
-                var newForm = new Form {
-                    Title = inputForm.Title,
-                    Description = inputForm.Description,
-                    IsPublished = inputForm.IsPublished,
-                    IsPublic = inputForm.IsPublic,
-                    StartDate = inputForm.StartDate,
-                    EndDate = inputForm.EndDate,
-                    OneSubmissionPerUser = inputForm.OneSubmissionPerUser,
-                    TenantId = existingForm.TenantId,
-                    Version = existingForm.Version + 1,
-                    ParentGroupId = existingForm.ParentGroupId ?? existingForm.Id, // Link to original
-                    Questions = inputForm.Questions.Select(q => new Question {
-                        Label = q.Label,
-                        Type = q.Type,
-                        IsRequired = q.IsRequired,
-                        Options = q.Options,
-                        HelpText = q.HelpText,
-                        Placeholder = q.Placeholder,
-                        DefaultValue = q.DefaultValue,
-                        ValidationRules = q.ValidationRules
-                    }).ToList()
-                };
-                
+                // Ensure root has ParentGroupId set to its own Id
+                if (existingForm.ParentGroupId is null) {
+                    existingForm.ParentGroupId = existingForm.Id;
+                }
+                var newForm = Form.CreateNextVersion(existingForm, inputForm);
                 db.Forms.Add(newForm);
                 await db.SaveChangesAsync();
-                return Results.Ok(newForm); // Return the NEW version
+                return Results.Ok(newForm);
             } else {
-                // No submissions, safe to edit in place
-                existingForm.Title = inputForm.Title;
-                existingForm.Description = inputForm.Description;
-                existingForm.IsPublished = inputForm.IsPublished;
-                existingForm.IsPublic = inputForm.IsPublic;
-                existingForm.StartDate = inputForm.StartDate;
-                existingForm.EndDate = inputForm.EndDate;
-                existingForm.OneSubmissionPerUser = inputForm.OneSubmissionPerUser;
-                
-                // Replace questions (Simple approach: Delete all, Add new)
-                db.Questions.RemoveRange(existingForm.Questions);
-                existingForm.Questions = inputForm.Questions;
-                
+                // Simple in-place update; ignore any incoming Version value
+                existingForm.UpdateContent(
+                    inputForm.Title,
+                    inputForm.Description,
+                    inputForm.IsPublished,
+                    inputForm.IsPublic,
+                    inputForm.StartDate,
+                    inputForm.EndDate,
+                    inputForm.OneSubmissionPerUser,
+                    inputForm.Questions
+                );
                 await db.SaveChangesAsync();
-                
-                // Reload the form to get the updated data with proper IDs
                 await db.Entry(existingForm).Collection(f => f.Questions).LoadAsync();
-                return Results.Ok(existingForm); // Return the updated form consistently
+                return Results.Ok(existingForm);
             }
+        });
+
+        // GET /forms/{id}/versions - list all versions for the form's group
+        app.MapGet("/forms/{id}/versions", async (int id, AppDb db) => {
+            var form = await db.Forms.FindAsync(id);
+            if (form is null) return Results.NotFound();
+            var rootId = form.ParentGroupId ?? form.Id;
+            var versions = await db.Forms
+                .Where(f => f.ParentGroupId == rootId || f.Id == rootId)
+                .OrderBy(f => f.Version)
+                .Select(f => new {
+                    f.Id,
+                    f.Version,
+                    f.Title,
+                    f.IsPublished,
+                    f.IsPublic,
+                    f.TenantId
+                })
+                .ToListAsync();
+            return Results.Ok(new { rootFormId = rootId, items = versions });
         });
 
         // POST /forms/{id}/submit
@@ -145,8 +164,36 @@ public static class FormEndpoints {
             });
         });
 
-        // DELETE /forms/{id}
-        app.MapDelete("/forms/{id}", async (int id, AppDb db) => {
+        // DELETE /forms/{id} - SOFT DELETE
+        app.MapDelete("/forms/{id}", async (int id, int? userId, AppDb db) => {
+            var form = await db.Forms.FirstOrDefaultAsync(f => f.Id == id);
+            if (form is null) return Results.NotFound();
+            if (form.IsDeleted) return Results.BadRequest("Form already deleted");
+
+            form.IsDeleted = true;
+            form.DeletedAt = DateTime.UtcNow;
+            form.DeletedBy = userId;
+            
+            await db.SaveChangesAsync();
+            return Results.Ok(new { message = "Form moved to trash" });
+        });
+
+        // POST /forms/{id}/restore - RESTORE DELETED FORM
+        app.MapPost("/forms/{id}/restore", async (int id, AppDb db) => {
+            var form = await db.Forms.FirstOrDefaultAsync(f => f.Id == id);
+            if (form is null) return Results.NotFound();
+            if (!form.IsDeleted) return Results.BadRequest("Form is not deleted");
+
+            form.IsDeleted = false;
+            form.DeletedAt = null;
+            form.DeletedBy = null;
+            
+            await db.SaveChangesAsync();
+            return Results.Ok(new { message = "Form restored successfully" });
+        });
+
+        // DELETE /forms/{id}/permanent - HARD DELETE (permanent)
+        app.MapDelete("/forms/{id}/permanent", async (int id, AppDb db) => {
             var form = await db.Forms.Include(f => f.Questions).FirstOrDefaultAsync(f => f.Id == id);
             if (form is null) return Results.NotFound();
 
@@ -164,7 +211,7 @@ public static class FormEndpoints {
             db.Forms.Remove(form);
             
             await db.SaveChangesAsync();
-            return Results.Ok(new { message = "Form deleted successfully" });
+            return Results.Ok(new { message = "Form permanently deleted" });
         });
     }
 }
